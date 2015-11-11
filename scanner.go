@@ -178,7 +178,7 @@ func scan(dst interface{}, resp Resp) (err error) {
 	return nil
 }
 
-func Scan(r byteScanner, dst ...interface{}) error {
+func Scan(r ByteScanner, dst ...interface{}) error {
 	for _, target := range dst {
 		val := Read(r)
 		err := val.Err

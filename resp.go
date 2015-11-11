@@ -1,7 +1,6 @@
 package fred
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -227,21 +226,13 @@ func (e Error) Error() string {
 	return string(e)
 }
 
-type byteScanner interface {
+type ByteScanner interface {
 	io.Reader
 	io.ByteScanner
 	ReadBytes(delim byte) ([]byte, error)
 }
 
-func scanner(r io.Reader) byteScanner {
-	if r, ok := r.(byteScanner); ok {
-		return r
-	}
-
-	return bufio.NewReader(r)
-}
-
-func readCRLF(r byteScanner, err error) error {
+func readCRLF(r ByteScanner, err error) error {
 	for c := byte('\r'); ; c = '\n' {
 		if b, err := r.ReadByte(); err != nil {
 			if err == io.EOF {
@@ -263,7 +254,7 @@ func unexpectedEOF(err error) error {
 	return err
 }
 
-func readSimpleString(r byteScanner) ([]byte, error) {
+func readSimpleString(r ByteScanner) ([]byte, error) {
 	var line []byte
 	for {
 		next, err := r.ReadBytes('\r')
@@ -293,7 +284,7 @@ func readSimpleString(r byteScanner) ([]byte, error) {
 	}
 }
 
-func readError(r byteScanner) (errmsg error, err error) {
+func readError(r ByteScanner) (errmsg error, err error) {
 	msg, err := readSimpleString(r)
 	if err != nil {
 		return nil, err
@@ -301,7 +292,7 @@ func readError(r byteScanner) (errmsg error, err error) {
 	return Error(string(msg)), nil
 }
 
-func readInteger(r byteScanner) (i int64, err error) {
+func readInteger(r ByteScanner) (i int64, err error) {
 	b, err := readSimpleString(r)
 	if err != nil {
 		return 0, err
@@ -327,7 +318,7 @@ func readInteger(r byteScanner) (i int64, err error) {
 	return i, nil
 }
 
-func readBulkString(size int64, r byteScanner) ([]byte, error) {
+func readBulkString(size int64, r ByteScanner) ([]byte, error) {
 	if size < 0 {
 		return nil, ErrBadSize
 	}
@@ -351,7 +342,7 @@ func readBulkString(size int64, r byteScanner) ([]byte, error) {
 	return buf, nil
 }
 
-func readArray(r byteScanner) ([]Resp, error) {
+func readArray(r ByteScanner) ([]Resp, error) {
 	// NOTE: Rewrite this so it's not recursive? Though the chance of that being an issue is slim.
 	size, err := readInteger(r)
 	if err != nil {
@@ -374,7 +365,7 @@ func readArray(r byteScanner) ([]Resp, error) {
 	return ary, nil
 }
 
-func Read(r byteScanner) (resp Resp) {
+func Read(r ByteScanner) (resp Resp) {
 	defer func() {
 		if resp.Err != nil && resp.typ != Err {
 			resp.typ = Invalid
