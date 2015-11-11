@@ -148,6 +148,37 @@ func (r Resp) Int() (int64, error) {
 	return 0, ErrWrongType
 }
 
+func (r Resp) Value() (interface{}, error) {
+	switch r.typ {
+	case SimpleStr, BulkStr:
+		s, err := r.Str()
+		return s, err
+	case Int:
+		i, err := r.Int()
+		return i, err
+	case Err:
+		return r.Err, nil
+	case Nil:
+		return nil, nil
+	case Array:
+		var ary []interface{}
+		actual, err := r.Array()
+		if err != nil {
+			return nil, err
+		}
+
+		ary = make([]interface{}, len(actual))
+		for i, r := range actual {
+			ary[i], err = r.Value()
+			if err != nil {
+				return nil, err
+			}
+		}
+		return ary, nil
+	}
+	return nil, errors.New("invalid Resp")
+}
+
 var (
 	ErrNoCRLF                = errors.New("no CRLF found")
 	ErrMalformedInt          = errors.New("integer response is malformed")
